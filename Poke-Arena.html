@@ -1,0 +1,647 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Poké Arena – Batalha Online</title>
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/peerjs@1.5.4/dist/peerjs.min.js"></script>
+<style>
+:root{--ink:#17142e;--paper:#e9f0f5;--red:#e63946;--gold:#ffcb05;--blue:#3b4cca;--green:#3ddc84}
+*{box-sizing:border-box}
+html{overflow-x:hidden}
+body{margin:0;min-height:100vh;background:radial-gradient(circle at 50% -10%,#35308a,#17142e 65%);color:var(--paper);font:10px/1.7 'Press Start 2P',monospace;display:flex;justify-content:center;padding:12px;overflow-x:hidden}
+main{width:100%;max-width:760px;min-width:0}
+h1{color:var(--gold);text-shadow:3px 3px 0 var(--red);font-size:22px;text-align:center;margin:22px 0 18px;letter-spacing:1px}
+h3{margin:8px 0;font-size:11px}
+.card{background:var(--paper);color:var(--ink);border:4px solid var(--ink);box-shadow:0 0 0 4px var(--paper),8px 8px 0 4px #0009;padding:14px;margin:14px 4px;border-radius:6px}
+button{font:inherit;cursor:pointer;background:var(--blue);color:#fff;border:3px solid var(--ink);padding:12px;border-radius:4px;box-shadow:0 4px 0 var(--ink);margin:4px 0;text-shadow:1px 1px 0 #0006;min-height:46px}
+button:hover{filter:brightness(1.12)}button:active{transform:translateY(3px);box-shadow:0 1px 0 var(--ink)}
+button:focus-visible,input:focus-visible,select:focus-visible,#list:focus-visible{outline:3px solid var(--gold);outline-offset:2px;box-shadow:0 0 0 6px var(--ink)}
+button:disabled{opacity:.5;cursor:not-allowed}
+.red{background:var(--red)}
+input,select{font:inherit;padding:11px;border:3px solid var(--ink);width:100%;margin:5px 0;background:#fff;border-radius:4px;color:var(--ink)}
+.card>button,#menu button{width:100%}
+hr{border:0;border-top:3px dashed #17142e55;margin:16px 0}
+.hide{display:none!important}
+small{font-size:8px}
+#mute{position:fixed;top:8px;right:8px;z-index:30;width:48px;padding:6px;margin:0}
+.row2{display:flex;gap:6px;flex-wrap:wrap}.row2>button{flex:1;min-width:90px;margin:2px 0;font-size:9px}
+/* seleção */
+#slots{position:sticky;top:0;z-index:5;background:var(--paper);display:grid;grid-template-columns:repeat(3,1fr);gap:6px;padding-bottom:8px;border-bottom:3px dashed #17142e55;margin-bottom:8px}
+.slot{border:3px solid var(--ink);background:#fff;border-radius:4px;padding:4px;text-align:center;font-size:8px;min-height:120px;min-width:0;overflow:hidden}
+.slot.empty{display:flex;align-items:center;justify-content:center;color:#444;border-style:dashed}
+.slot img{width:56px;height:56px;image-rendering:pixelated}.slot b{display:block;font-size:7px;word-break:break-word}
+.slot .sb{display:flex;gap:2px;justify-content:center}.slot .sb button{padding:2px;min-height:32px;min-width:32px;margin:2px 0;font-size:9px;box-shadow:0 2px 0 var(--ink)}
+#chips{display:flex;flex-wrap:wrap;gap:4px;margin:6px 0}
+.tc{display:inline-block;color:#fff;border-radius:3px;padding:2px 5px;font-size:8px;text-shadow:1px 1px 0 #0007}
+#chips button{padding:6px 8px;min-height:36px;margin:0;font-size:8px;box-shadow:0 2px 0 var(--ink)}
+#chips button.on{outline:3px solid var(--gold);box-shadow:0 0 0 5px var(--ink)}
+#list{height:46vh;min-height:260px;overflow-y:auto;overflow-x:hidden;border:3px solid var(--ink);background:#cfd9e2;padding:4px;display:flex;flex-direction:column;gap:4px;-webkit-overflow-scrolling:touch}
+.row{display:grid;grid-template-columns:48px 44px 1fr 14px;align-items:center;gap:6px;width:100%;margin:0;background:#fff;color:var(--ink);text-shadow:none;box-shadow:0 2px 0 var(--ink);text-align:left;font-size:8px;padding:4px 6px;content-visibility:auto;contain-intrinsic-size:auto 56px;min-height:56px}
+.row img{width:48px;height:48px;image-rendering:pixelated}.row i{font-style:normal;color:#0a7a3a}
+.ov{position:fixed;inset:0;background:#000b;z-index:20;display:flex;align-items:center;justify-content:center;padding:8px;overflow-y:auto}
+.ov .card{width:100%;max-width:460px;margin:0}
+.sbar{display:grid;grid-template-columns:78px 30px 1fr;gap:4px;align-items:center;font-size:8px;margin:3px 0}
+.sbar .bar{margin:0}
+.mb{border:3px solid var(--ink);border-radius:4px;padding:8px;margin:8px 0;background:#fff}
+.mr{width:100%;text-align:left;background:#fff;color:var(--ink);text-shadow:none;font-size:8px;margin:3px 0;box-shadow:0 2px 0 var(--ink)}
+.mr.on{background:#fff3b0;outline:3px solid var(--red)}
+/* batalha */
+#arena{position:relative;height:310px;border:4px solid var(--ink);border-radius:8px;background:linear-gradient(#a9e2ff 0 55%,#82d66c 55% 100%);overflow:hidden;box-shadow:0 0 0 4px var(--paper),0 10px 24px #0003}
+#battleTop{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;margin:8px 4px}
+#battleTop .pill{background:#fff;color:var(--ink);border:2px solid var(--ink);border-radius:99px;padding:6px 10px;font-size:8px}
+#battleTop .pill.online{background:#d5ffe5}
+#battleTop .pill.cpu{background:#fff0b8}
+#battleLayout{display:grid;grid-template-columns:minmax(0,1fr);gap:12px}
+#chatPanel{background:#fff;color:var(--ink);border:3px solid var(--ink);border-radius:6px;padding:10px;margin:12px 4px}
+#chatPanel h3{display:flex;align-items:center;justify-content:space-between;gap:8px}
+#chatState{font-size:8px;color:#267047}
+#chatMessages{height:150px;overflow:auto;background:#e8eef5;border:2px solid #c3cedb;border-radius:4px;padding:8px;display:flex;flex-direction:column;gap:7px;overflow-wrap:anywhere}
+.chatmsg{max-width:92%;align-self:flex-start;background:#fff;border:2px solid #d3dce7;border-radius:8px;padding:7px 9px;font:10px/1.5 system-ui,sans-serif}
+.chatmsg.mine{align-self:flex-end;background:#d9f8e6;border-color:#8bd5aa}
+.chatmsg .who{font-size:9px;font-weight:800;display:block;margin-bottom:2px;color:#39415c}
+.chatmsg .when{font-size:8px;color:#687386;margin-left:6px}
+#chatForm{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:6px;margin-top:7px}
+#chatForm input{font:14px system-ui,sans-serif;min-width:0;margin:0}
+#chatForm button{margin:0;min-height:44px;padding:8px 12px;font-size:9px}
+#chatHint{font-size:8px;color:#596579;margin:6px 0 0}
+.battleTitle{font-size:10px;color:var(--gold);text-align:center;margin:10px 4px}
+@media(min-width:650px){#battleLayout{grid-template-columns:minmax(0,1fr) 260px;align-items:start}#chatPanel{margin:0 4px}#chatMessages{height:260px}}
+
+#arena:after{content:"";position:absolute;left:0;right:0;top:58%;height:6px;background:#17142e22}
+#fx{position:absolute;inset:0;opacity:0;pointer-events:none;z-index:4}#fx.go{animation:fl .45s}
+@keyframes fl{0%{opacity:.75}100%{opacity:0}}
+.mon{position:absolute;image-rendering:pixelated;max-height:56%;transition:opacity .6s,transform .6s}
+#oppImg{right:14%;top:16%}#meImg{left:9%;bottom:4%}
+.ko{opacity:0;transform:translateY(40px)}
+.hit{animation:hit .5s}
+@keyframes hit{0%,100%{transform:translateX(0)}20%{transform:translateX(-12px);filter:brightness(3)}40%{transform:translateX(12px)}60%{transform:translateX(-7px);filter:brightness(2)}}
+.box{position:absolute;background:var(--paper);color:var(--ink);border:3px solid var(--ink);padding:8px 10px;border-radius:4px;width:190px;font-size:9px;z-index:3}
+#oppBox{left:8px;top:8px}#meBox{right:8px;bottom:8px}
+.ty{font-size:8px;color:#444;margin:2px 0}
+.bar{height:10px;background:#33334a;border:2px solid var(--ink);margin:4px 0}
+.bar i{display:block;height:100%;width:100%;background:var(--green);transition:width .6s,background .6s}
+.pips{letter-spacing:3px;color:var(--red)}
+.bd{display:inline-block;padding:1px 4px;border-radius:3px;font-size:7px;color:#fff;margin:1px 2px 1px 0}
+.bub{position:absolute;font-size:24px;background:#fff;border:3px solid var(--ink);border-radius:8px;padding:2px 6px;z-index:6}
+#eo{right:10%;top:3%}#em{left:8%;top:42%}
+#trn{text-align:center;color:var(--gold);margin:6px 0}
+#log{min-height:62px;background:var(--ink);border:3px solid var(--paper);padding:12px;margin:14px 4px;border-radius:4px;white-space:pre-line}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:0 4px}
+.grid button{min-height:56px;margin:0;min-width:0;word-break:break-word}.grid small{opacity:.95;font-size:8px}
+.grid .sw{background:#4a4670}.grid p{grid-column:1/-1;text-align:center}
+#emos{margin:8px 4px}#emos button{font-size:18px;padding:4px}
+@media(max-width:520px){#arena{height:280px}.box{width:150px;font-size:8px}#chatForm{grid-template-columns:minmax(0,1fr) 88px}#chatPanel{padding:8px}#chatMessages{height:130px}}
+@media(prefers-reduced-motion:reduce){.hit,#fx.go{animation:none}*{transition:none!important;scroll-behavior:auto!important}}
+</style>
+</head>
+<body>
+<button id="mute" aria-label="Silenciar som" onclick="toggleMute()">🔊</button>
+<main>
+<h1>POKÉ ARENA</h1>
+
+<section id="menu" class="card">
+  <h3>🌐 Multiplayer entre PCs</h3>
+  <p style="font:12px/1.6 system-ui,sans-serif">Crie uma sala em um PC e copie o ID completo gerado pelo servidor para o outro jogador. Ambos precisam abrir este jogo pela internet e manter a página aberta.</p>
+  <button class="red" onclick="host()">Criar sala</button>
+  <p>Ou entre na sala de um amigo:</p>
+  <input id="code" placeholder="Cole o ID completo da sala" maxlength="120" autocomplete="off" aria-label="ID completo da sala">
+  <button onclick="join()">Entrar na sala</button>
+  <hr>
+  <button onclick="show('diff')">Treinar contra a CPU</button>
+  <p id="lobbyMsg" aria-live="polite"></p>
+</section>
+
+<section id="diff" class="card hide">
+  <p>Escolha a dificuldade:</p>
+  <button onclick="vsCpu(0)">Fácil<br><small>Golpes aleatórios</small></button>
+  <button onclick="vsCpu(1)">Normal<br><small>Vantagem de tipo e dano esperado</small></button>
+  <button class="red" onclick="vsCpu(2)">Difícil<br><small>Calcula tudo, troca e evita golpes inúteis</small></button>
+  <button class="sw" style="background:#4a4670" onclick="show('menu')">Voltar</button>
+</section>
+
+<section id="team" class="card hide">
+  <div id="slots" aria-label="Seu time"></div>
+  <div class="row2"><button onclick="randomTeam()">Sortear time</button><button onclick="clearTeam()">Limpar time</button><button id="last" class="hide" onclick="useLast()">Usar último time</button></div>
+  <input id="q" type="search" placeholder="Buscar nome ou número" aria-label="Buscar Pokémon por nome ou número" autocomplete="off" oninput="onQ()">
+  <select id="gen" aria-label="Filtrar por geração" onchange="onGen()"></select>
+  <div id="chips" aria-label="Filtrar por tipo"></div>
+  <div id="list" tabindex="0" aria-label="Lista de Pokémon"></div>
+  <p id="oppSt" aria-live="polite"></p>
+  <button id="mvBtn" disabled onclick="openMoves()">Escolher golpes (opcional)</button>
+  <button class="red" id="ready" disabled onclick="ready()">Pronto para lutar</button>
+  <p id="teamMsg" aria-live="polite"></p>
+</section>
+
+<section id="moves" class="card hide">
+  <h3>Escolha até 4 golpes por Pokémon</h3>
+  <p><small>Sem escolher, os golpes são sorteados.</small></p>
+  <div id="mvl"></div>
+  <button onclick="backTeam()">Voltar ao time</button>
+</section>
+
+<section id="battle" class="hide">
+  <div id="battleTop"><span class="pill" id="modePill">⚔️ Batalha</span><span class="pill" id="connectionPill">Preparando batalha…</span></div>
+  <div id="trn" class="battleTitle"></div>
+  <div id="battleLayout"><div>
+  <div id="arena">
+    <div id="fx"></div>
+    <div class="box" id="oppBox"><b id="oN"></b><div class="ty" id="oT"></div><div class="bar"><i id="oB"></i></div><span id="oH"></span><div id="oS"></div><div class="pips" id="oP"></div></div>
+    <img class="mon" id="oppImg" alt="Pokémon do oponente">
+    <img class="mon" id="meImg" alt="Seu Pokémon">
+    <div class="box" id="meBox"><b id="mN"></b><div class="ty" id="mT"></div><div class="bar"><i id="mB"></i></div><span id="mH"></span><div id="mS"></div><div class="pips" id="mP"></div></div>
+    <span class="bub hide" id="eo"></span><span class="bub hide" id="em"></span>
+  </div>
+  <div id="log" aria-live="polite"></div>
+  <div id="act" class="grid"></div>
+  <div id="emos" class="row2"></div>
+  </div>
+  <aside id="chatPanel" class="hide" aria-label="Chat da batalha">
+    <h3>💬 Chat da batalha <span id="chatState">● conectado</span></h3>
+    <div id="chatMessages" role="log" aria-live="polite" aria-label="Mensagens do chat"><p style="font:12px system-ui,sans-serif;color:#687386">As mensagens aparecerão aqui.</p></div>
+    <form id="chatForm" onsubmit="sendChat(event)">
+      <input id="chatInput" maxlength="180" autocomplete="off" placeholder="Digite uma mensagem…" aria-label="Mensagem para o oponente">
+      <button type="submit">Enviar</button>
+    </form>
+    <p id="chatHint">Converse com seu oponente durante a partida. Não compartilhe dados pessoais.</p>
+  </aside></div>
+</section>
+
+<div id="sheet" class="ov hide" role="dialog" aria-modal="true" aria-label="Ficha do Pokémon"><div class="card"><div id="sbody"></div></div></div>
+</main>
+
+<script>
+const API='https://pokeapi.co/api/v2/',$=id=>document.getElementById(id);
+const TC={normal:'#76766a',fire:'#e8590c',water:'#3b82f6',electric:'#9a7300',grass:'#3f9d3f',ice:'#2688a0',fighting:'#b91c1c',poison:'#9333ea',ground:'#9a7326',flying:'#6677e0',psychic:'#e8508f',bug:'#6f8710',rock:'#7a6a2a',ghost:'#5b4b8a',dragon:'#4c32c8',dark:'#4b3b32',steel:'#5f6f80',fairy:'#c25aa0'};
+const TP={normal:'Normal',fire:'Fogo',water:'Água',electric:'Elétrico',grass:'Planta',ice:'Gelo',fighting:'Lutador',poison:'Veneno',ground:'Terra',flying:'Voador',psychic:'Psíquico',bug:'Inseto',rock:'Pedra',ghost:'Fantasma',dragon:'Dragão',dark:'Sombrio',steel:'Aço',fairy:'Fada'};
+const SK={attack:'atk',defense:'def','special-attack':'spa','special-defense':'spd',speed:'spe'},SL={atk:'Ataque',def:'Defesa',spa:'Atq. Esp.',spd:'Def. Esp.',spe:'Velocidade'},SH={atk:'ATQ',def:'DEF',spa:'AEs',spd:'DEs',spe:'VEL'};
+const STI={par:['⚡PAR','#8a6d00'],brn:['🔥QUE','#c2410c'],psn:['☠VEN','#7e22ce'],slp:['💤SON','#475569']};
+const IM={par:['electric'],brn:['fire'],psn:['poison','steel'],slp:[]},SM={par:'foi paralisado!',brn:'se queimou!',psn:'foi envenenado!',slp:'adormeceu!'};
+const GEN=[0,151,251,386,493,649,721,809,905,1025],EMO=['👍','😂','😮','😡','👏'];
+const NETERR='Sem conexão com a PokéAPI. Verifique sua internet e tente de novo.';
+const STR={n:'struggle',pn:'Luta desesperada',type:'normal',p:50,cls:'physical',acc:0,pp:1,mx:1,pr:0,al:null,ac:0,sc:[],sch:0,self:false,rec:1};
+const TR=[{n:'Treinador Novato',hi:'Vou me esforçar ao máximo!',w:'Ganhei! Que sorte!',l:'Uau, você é forte!'},
+ {n:'Treinador Rival',hi:'Vamos ver quem é o melhor!',w:'Tente de novo na próxima.',l:'Hmpf… Da próxima eu venço.'},
+ {n:'Campeão Elite',hi:'Não vou pegar leve com você.',w:'Como esperado. Treine mais.',l:'Impressionante. Você merece o título.'}];
+let peer,conn,me=0,cpu=false,diff=1,S=null,E=null,acts=[null,null],hostTeam=null,guestTeam=null,resolving=false,pending=0,Q=Promise.resolve(),typeC={},joined=0,rq=[0,0],aiBusy=0,hostId='',rc=0,locked=0,peerOpeningTimer=null;
+let ALL=[],team=[],ft=null,TS={},ML={},C={},chatHistory=[],chatReady=false;
+const clone=o=>JSON.parse(JSON.stringify(o)),sleep=ms=>new Promise(r=>setTimeout(r,ms));
+const rnd=n=>Math.floor(Math.random()*n)+1,nice=s=>s.replace(/-/g,' ').toUpperCase();
+const mon=(st,i)=>st.p[i].team[st.p[i].a],zs=()=>({atk:0,def:0,spa:0,spd:0,spe:0});
+const SCR=['menu','diff','team','moves','battle'];
+const show=id=>SCR.forEach(x=>$(x).classList.toggle('hide',x!==id));
+const send=m=>conn&&conn.open&&conn.send(m);
+const tmsg=t=>$('teamMsg').textContent=t,note=t=>{$('log').textContent=t;$('lobbyMsg').textContent=t;tmsg(t)};
+const spr=id=>`https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${id}.png`;
+async function api(u){u=u.startsWith('http')?u:API+u;if(C[u])return C[u];const r=await fetch(u);if(!r.ok)throw new Error(r.status);return C[u]=await r.json()}
+async function pool(a,n,fn){let i=0;await Promise.all(Array(n).fill(0).map(async()=>{while(i<a.length)await fn(a[i++]).catch(()=>{})}))}
+
+/* ---------- Som ---------- */
+let AC,mute=false;try{mute=localStorage.getItem('pk-mute')==='1'}catch(e){}
+function toggleMute(){mute=!mute;try{localStorage.setItem('pk-mute',mute?'1':'0')}catch(e){}drawMute()}
+function drawMute(){$('mute').textContent=mute?'🔇':'🔊';$('mute').setAttribute('aria-label',mute?'Ativar som':'Silenciar som')}
+function tone(f,d,ty,t0,f2){if(mute)return;try{AC=AC||new(window.AudioContext||window.webkitAudioContext)();const t=AC.currentTime+(t0||0),o=AC.createOscillator(),g=AC.createGain();o.type=ty||'square';o.frequency.setValueAtTime(f,t);if(f2)o.frequency.linearRampToValueAtTime(f2,t+d);g.gain.setValueAtTime(.07,t);g.gain.exponentialRampToValueAtTime(.001,t+d);o.connect(g);g.connect(AC.destination);o.start(t);o.stop(t+d)}catch(e){}}
+const SFX={move:()=>tone(300,.15,'square',0,750),hit:()=>tone(160,.2,'sawtooth',0,50),ko:()=>tone(420,.6,'triangle',0,60),win:()=>[523,659,784,1047].forEach((f,i)=>tone(f,.2,'square',i*.15)),lose:()=>[400,330,260,200].forEach((f,i)=>tone(f,.25,'triangle',i*.2))};
+
+/* ---------- Conexão ---------- */
+function setup(c){conn=c;
+  c.on('open',()=>{chatReady=true;updateConnection();if(joined){if(me===0&&E)send({t:'sync',s:clone(E)})}else goTeam()});
+  c.on('data',onData);
+  c.on('close',()=>{if(c!==conn)return;chatReady=false;updateConnection();note(me===1?'Conexão perdida. Tentando reconectar…':'Oponente desconectou. Aguardando a volta dele…');reco()});
+  c.on('error',e=>{chatReady=false;updateConnection();$('lobbyMsg').textContent='Problema na conexão: '+(e&&e.type||'erro de rede')+'. Confira o código e tente novamente.'});
+}
+function updateConnection(){
+  const p=$('connectionPill');if(!p)return;
+  if(cpu){p.textContent='🤖 CPU';p.className='pill cpu'}
+  else if(conn&&conn.open){p.textContent='● Oponente conectado';p.className='pill online'}
+  else{p.textContent='○ Aguardando conexão';p.className='pill'}
+  $('chatState').textContent=conn&&conn.open?'● conectado':'○ reconectando';
+}
+function reco(){
+  if(me!==1||cpu||rc)return;rc=1;let n=0;
+  const t=setInterval(()=>{
+    if(conn&&conn.open){clearInterval(t);rc=0;return}
+    if(++n>10){clearInterval(t);rc=0;note('Não foi possível reconectar. Volte ao início.');return}
+    note('Reconectando… ('+n+'/10)');
+    try{if(peer.disconnected)peer.reconnect();setup(peer.connect(hostId,{reliable:true}))}catch(e){}
+  },3000);
+}
+function makePeer(){
+  // PeerServer Cloud faz a sinalização; STUNs extras ajudam na travessia de NAT.
+  return new Peer(undefined,{
+    host:'0.peerjs.com',port:443,path:'/',secure:true,debug:1,
+    config:{iceServers:[
+      {urls:'stun:stun.l.google.com:19302'},
+      {urls:'stun:stun1.l.google.com:19302'}
+    ]}
+  });
+}
+function resetNetwork(){
+  if(peerOpeningTimer){clearTimeout(peerOpeningTimer);peerOpeningTimer=null}
+  try{if(conn)conn.close()}catch(e){}
+  try{if(peer&&!peer.destroyed)peer.destroy()}catch(e){}
+  conn=null;peer=null;joined=0;rc=0;chatReady=false;
+}
+function peerErrorText(e){
+  const t=e&&e.type||'erro desconhecido';
+  if(t==='peer-unavailable')return 'Sala não encontrada. Confira se copiou o ID inteiro e se o anfitrião ainda está com o jogo aberto.';
+  if(t==='unavailable-id')return 'O ID da sala já está sendo usado. Crie uma nova sala.';
+  if(t==='network')return 'Não foi possível acessar o servidor de salas. Verifique a internet ou tente novamente mais tarde.';
+  if(t==='server-error')return 'O servidor de salas apresentou um erro temporário. Tente novamente.';
+  return 'Falha na conexão ('+t+'). Verifique a internet e tente novamente.';
+}
+function host(){
+  resetNetwork();me=0;cpu=false;hostId='';$('lobbyMsg').textContent='Conectando ao servidor de salas…';
+  try{peer=makePeer()}catch(e){$('lobbyMsg').textContent='Não foi possível iniciar o multiplayer. Atualize o navegador e tente novamente.';return}
+  const thisPeer=peer;
+  peerOpeningTimer=setTimeout(()=>{if(peer===thisPeer&&!hostId)$('lobbyMsg').textContent='O servidor de salas não respondeu. Confira a internet e tente novamente.'},15000);
+  peer.on('open',id=>{
+    if(peer!==thisPeer)return;
+    if(peerOpeningTimer){clearTimeout(peerOpeningTimer);peerOpeningTimer=null}
+    hostId=id;
+    $('lobbyMsg').innerHTML=`Sala criada! Copie o ID completo abaixo e envie ao outro jogador:<br><input readonly value="${id}" aria-label="ID completo da sala" onclick="this.select()" style="font:12px system-ui,sans-serif"><button onclick="copyRoomId()">Copiar ID da sala</button><br><small>O outro jogador deve colar esse ID no campo de entrada. Os dois precisam estar conectados à internet e manter esta página aberta.</small><br>Aguardando o oponente…`;
+  });
+  peer.on('connection',c=>{
+    if(peer!==thisPeer)return;
+    if(conn&&conn.open){c.close();$('lobbyMsg').textContent='Já existe um jogador conectado a esta sala.';return}
+    setup(c);
+  });
+  peer.on('disconnected',()=>{if(peer===thisPeer){$('lobbyMsg').textContent='Reconectando ao servidor de salas…';try{thisPeer.reconnect()}catch(e){}}});
+  peer.on('error',e=>{if(peer===thisPeer){if(peerOpeningTimer){clearTimeout(peerOpeningTimer);peerOpeningTimer=null}$('lobbyMsg').textContent='Não foi possível criar a sala. '+peerErrorText(e)}});
+}
+function copyRoomId(){
+  if(!hostId)return;
+  const fallback=()=>{const el=document.querySelector('#lobbyMsg input');if(el){el.focus();el.select();try{document.execCommand('copy');$('lobbyMsg').insertAdjacentHTML('beforeend','<br><small>ID selecionado; se não foi copiado automaticamente, copie com Ctrl+C.</small>')}catch(e){}}};
+  if(navigator.clipboard&&location.protocol==='https:')navigator.clipboard.writeText(hostId).then(()=>$('lobbyMsg').insertAdjacentHTML('beforeend','<br><small>ID copiado!</small>')).catch(fallback);else fallback();
+}
+function join(){
+  const code=$('code').value.trim();
+  if(!code){$('lobbyMsg').textContent='Cole o ID completo que o anfitrião enviou.';return}
+  resetNetwork();me=1;cpu=false;hostId=code;$('lobbyMsg').textContent='Conectando ao servidor e procurando a sala…';
+  try{peer=makePeer()}catch(e){$('lobbyMsg').textContent='Não foi possível iniciar o multiplayer. Atualize o navegador e tente novamente.';return}
+  const thisPeer=peer;let attempted=false;
+  peerOpeningTimer=setTimeout(()=>{if(peer===thisPeer&&!attempted)$('lobbyMsg').textContent='O servidor de salas não respondeu. Confira a internet e tente novamente.'},15000);
+  peer.on('open',()=>{
+    if(peer!==thisPeer||attempted)return;
+    attempted=true;if(peerOpeningTimer){clearTimeout(peerOpeningTimer);peerOpeningTimer=null}
+    $('lobbyMsg').textContent='ID aceito. Tentando conectar ao anfitrião…';
+    const c=thisPeer.connect(hostId,{reliable:true});setup(c);
+    const wait=setTimeout(()=>{if(peer===thisPeer&&(!conn||!conn.open)&&!joined)$('lobbyMsg').textContent='Ainda não conectou. Confira o ID completo e peça ao anfitrião para manter a sala aberta.'},18000);
+    c.on('open',()=>clearTimeout(wait));c.on('error',()=>clearTimeout(wait));
+  });
+  peer.on('disconnected',()=>{if(peer===thisPeer){$('lobbyMsg').textContent='Reconectando ao servidor de salas…';try{thisPeer.reconnect()}catch(e){}}});
+  peer.on('error',e=>{if(peer===thisPeer&&!joined){if(peerOpeningTimer){clearTimeout(peerOpeningTimer);peerOpeningTimer=null}$('lobbyMsg').textContent=peerErrorText(e)}});
+}
+function vsCpu(d){me=0;cpu=true;diff=d;goTeam()}
+function goTeam(){
+  joined=1;locked=0;show('team');drawFilters();if(!ALL.length)loadList();renderTeam();
+  $('oppSt').textContent=cpu?'':'Oponente escolhendo…';if(!cpu)send({t:'st',v:0});
+  $('last').classList.toggle('hide',!lastTeam());
+}
+
+/* ---------- Escolha de Pokémon ---------- */
+function lastTeam(){try{const t=JSON.parse(localStorage.getItem('pk-team'));return Array.isArray(t)&&t.length===3?t:null}catch(e){return null}}
+async function loadList(){
+  $('list').textContent='Carregando Pokémon…';
+  try{const j=await api('pokemon?limit=1025');ALL=j.results.map((r,i)=>({id:i+1,n:r.name}));renderList(1)}
+  catch(e){$('list').innerHTML=`<p style="color:#17142e">${NETERR}</p><button onclick="loadList()">Tentar de novo</button>`}
+}
+function drawFilters(){
+  if(!$('gen').options.length)$('gen').innerHTML='<option value="0">Todas as gerações</option>'+GEN.slice(1).map((x,i)=>`<option value="${i+1}">Geração ${i+1}</option>`).join('');
+  $('chips').innerHTML=Object.keys(TC).map(t=>`<button class="${ft===t?'on':''}" aria-pressed="${ft===t}" style="background:${TC[t]}" onclick="setType('${t}')">${TP[t]}</button>`).join('');
+}
+async function setType(t){
+  ft=ft===t?null:t;drawFilters();
+  if(ft&&!TS[ft]){try{const j=await api('type/'+ft);TS[ft]=new Set(j.pokemon.map(x=>+x.pokemon.url.match(/\/(\d+)\/?$/)[1]))}catch(e){ft=null;drawFilters();tmsg(NETERR)}}
+  renderList(1);
+}
+let qt;const onQ=()=>{clearTimeout(qt);qt=setTimeout(()=>renderList(1),120)},onGen=()=>renderList(1);
+function renderList(reset){
+  const L=$('list'),st=L.scrollTop,s=$('q').value.trim().toLowerCase().replace('#',''),g=+$('gen').value,T=ft&&TS[ft];
+  const r=ALL.filter(p=>(!s||p.n.includes(s)||String(p.id).startsWith(s))&&(!g||(p.id>GEN[g-1]&&p.id<=GEN[g]))&&(!T||T.has(p.id)));
+  L.innerHTML=r.length?r.map(p=>`<button class="row" onclick="openSheet(${p.id})" aria-label="${nice(p.n)}, número ${p.id}"><img loading="lazy" decoding="async" width="48" height="48" alt="" src="${spr(p.id)}"><span>#${p.id}</span><b>${nice(p.n)}</b><i>${team.some(t=>t.id===p.id)?'✔':''}</i></button>`).join(''):'<p style="color:#17142e">Nenhum Pokémon encontrado.</p>';
+  L.scrollTop=reset?0:st;
+}
+function renderTeam(){
+  $('slots').innerHTML=[0,1,2].map(i=>{const t=team[i];if(!t)return`<div class="slot empty">Vago ${i+1}</div>`;
+    const n=ALL[t.id-1]?nice(ALL[t.id-1].n):'#'+t.id;
+    return`<div class="slot"><img src="${spr(t.id)}" alt=""><b>${n}</b><small>${t.mv?'golpes: '+t.mv.length:'golpes auto'}</small><div class="sb"><button aria-label="Mover ${n} para trás" onclick="moveMon(${i},-1)">◀</button><button class="red" aria-label="Remover ${n}" onclick="delMon(${i})">✕</button><button aria-label="Mover ${n} para frente" onclick="moveMon(${i},1)">▶</button></div></div>`}).join('');
+  $('ready').disabled=$('mvBtn').disabled=team.length<3||!!locked;
+}
+const chg=()=>{renderTeam();renderList()};
+function addMon(id){if(locked||team.length>=3||team.some(t=>t.id===id))return;team.push({id,mv:null});closeSheet();chg()}
+function delMon(i){if(locked)return;team.splice(i,1);chg()}
+function moveMon(i,d){if(locked||!team[i+d])return;[team[i],team[i+d]]=[team[i+d],team[i]];renderTeam()}
+function randomTeam(){if(locked)return;const s=new Set,n=ALL.length||1025;while(s.size<3)s.add(rnd(n));team=[...s].map(id=>({id,mv:null}));chg()}
+function clearTeam(){if(locked)return;team=[];chg()}
+function useLast(){if(locked)return;const t=lastTeam();if(t){team=t;chg()}}
+async function openSheet(id){
+  $('sheet').classList.remove('hide');$('sbody').textContent='Carregando…';
+  try{
+    const [p,sp]=await Promise.all([api('pokemon/'+id),api('pokemon-species/'+id).catch(()=>null)]);
+    const nm=sp&&((sp.names.find(x=>x.language.name==='pt-BR')||sp.names.find(x=>x.language.name==='pt'))||{}).name||nice(p.name);
+    const s=p.sprites,im=(s.other&&s.other.showdown&&s.other.showdown.front_default)||(s.versions&&s.versions['generation-v']['black-white'].animated.front_default)||s.front_default;
+    const LB={hp:'HP',attack:'Ataque',defense:'Defesa','special-attack':'Atq. Esp.','special-defense':'Def. Esp.',speed:'Velocidade'};
+    const bars=p.stats.map(x=>`<div class="sbar"><span>${LB[x.stat.name]}</span><b>${x.base_stat}</b><div class="bar"><i style="width:${Math.min(100,x.base_stat/2.2)}%;background:${x.base_stat>=100?'var(--green)':x.base_stat>=60?'var(--gold)':'var(--red)'}"></i></div></div>`).join('');
+    const has=team.some(t=>t.id===id),full=team.length>=3;
+    $('sbody').innerHTML=`<div style="text-align:center"><img src="${im}" alt="${nm}" style="height:96px;image-rendering:pixelated"><h3>#${id} ${nm}</h3>${p.types.map(t=>`<span class="tc" style="background:${TC[t.type.name]}">${TP[t.type.name]}</span> `).join('')}</div><div style="margin:10px 0">${bars}</div><button class="red" ${has||full||locked?'disabled':''} onclick="addMon(${id})">${has?'Já está no time':full?'Time cheio':'Adicionar ao time'}</button><button onclick="closeSheet()" style="background:#4a4670">Fechar</button>`;
+  }catch(e){$('sbody').innerHTML=`<p>${NETERR}</p><button onclick="closeSheet()">Fechar</button>`}
+}
+const closeSheet=()=>$('sheet').classList.add('hide');
+document.addEventListener('keydown',e=>{if(e.key==='Escape')closeSheet()});
+
+/* ---------- Escolha de golpes ---------- */
+const SIG=n=>n.replace(/[^a-z0-9-]/g,'');
+function mkMv(j){
+  const mt=j.meta||{},al=mt.ailment&&mt.ailment.name,A={paralysis:'par',burn:'brn',poison:'psn',sleep:'slp'}[al]||null;
+  const sc=(j.stat_changes||[]).map(s=>[SK[s.stat.name],s.change]).filter(x=>x[0]),st=j.damage_class.name==='status';
+  if(st?(!A&&!sc.length):!j.power)return null;
+  const nm=(j.names||[]).find(x=>x.language.name==='pt-BR')||(j.names||[]).find(x=>x.language.name==='pt');
+  return{n:j.name,pn:nm?nm.name:nice(j.name),type:j.type.name,p:j.power||0,cls:j.damage_class.name,acc:j.accuracy||0,pp:j.pp||5,mx:j.pp||5,pr:j.priority||0,al:A,ac:st?100:(mt.ailment_chance||0),sc,sch:st?100:(mt.stat_chance||0),
+    self:st?/^user/.test(j.target.name):(mt.category&&mt.category.name==='damage+raise')};
+}
+function openMoves(){show('moves');$('mvl').innerHTML=team.map((t,i)=>`<div class="mb"><b>${nice(ALL[t.id-1].n)}</b><p id="mc${i}"></p><button onclick="loadMoves(${i})">Escolher golpes</button><button class="sw" style="background:#4a4670" onclick="autoMv(${i})">Golpes automáticos</button><div id="ml${i}"></div></div>`).join('');team.forEach((t,i)=>{cnt(i);drawML(i)})}
+function backTeam(){show('team');renderTeam()}
+const cnt=i=>$('mc'+i).textContent=team[i].mv?team[i].mv.length+'/4 escolhidos':'Automáticos';
+async function loadMoves(i){
+  const t=team[i],el=$('ml'+i);
+  if(!ML[t.id]){
+    try{const p=await api('pokemon/'+t.id),u=p.moves.map(m=>m.move.url),L=[];let d=0;
+      el.textContent='Carregando golpes 0/'+u.length;
+      await pool(u,10,async x=>{const m=mkMv(await api(x));if(m)L.push(m);el.textContent='Carregando golpes '+(++d)+'/'+u.length});
+      if(!L.length)throw 0;ML[t.id]=L.sort((a,b)=>b.p-a.p)}
+    catch(e){el.textContent=NETERR;return}
+  }
+  drawML(i);
+}
+function drawML(i){
+  const t=team[i],L=ML[t.id],el=$('ml'+i);if(!L){el.textContent='';return}
+  el.innerHTML=L.map(m=>{const on=t.mv&&t.mv.includes(m.n);return`<button class="mr${on?' on':''}" aria-pressed="${!!on}" onclick="togMv(${i},'${SIG(m.n)}')"><b>${m.pn}</b> <span class="tc" style="background:${TC[m.type]}">${TP[m.type]}</span><br><small>${m.p?'Poder '+m.p:'Status'} • Prec ${m.acc||'—'} • PP ${m.mx}</small></button>`}).join('');
+}
+function togMv(i,n){const t=team[i],a=t.mv?[...t.mv]:[],k=a.indexOf(n);if(k>=0)a.splice(k,1);else if(a.length<4)a.push(n);else return;t.mv=a.length?a:null;cnt(i);drawML(i)}
+function autoMv(i){team[i].mv=null;cnt(i);drawML(i)}
+
+/* ---------- Dados dos Pokémon ---------- */
+async function mkMon(s){
+  const p=await api('pokemon/'+s.id),sp=await api('pokemon-species/'+s.id).catch(()=>null);
+  const nn=sp&&(sp.names.find(x=>x.language.name==='pt-BR')||sp.names.find(x=>x.language.name==='pt')),name=nn?nn.name.toUpperCase():nice(p.name);
+  const b={};p.stats.forEach(x=>b[x.stat.name]=x.base_stat);
+  const f=x=>Math.floor((2*x+31)/2)+5,hp=Math.floor((2*b.hp+31)/2)+60;
+  let ms;
+  if(s.mv&&s.mv.length)ms=(await Promise.all(s.mv.map(n=>api('move/'+n).then(mkMv)))).filter(Boolean);
+  else{
+    const pl=p.moves.map(m=>m.move.url).sort(()=>Math.random()-.5).slice(0,18);
+    const all=(await Promise.all(pl.map(u=>api(u).then(mkMv).catch(()=>null)))).filter(Boolean),dm=all.filter(m=>m.p),sm=all.filter(m=>!m.p);
+    ms=[...dm.slice(0,3),...sm.slice(0,1),...dm.slice(3)].slice(0,4);
+  }
+  if(!ms.length)ms=[{n:'tackle',pn:'Investida',type:'normal',p:40,cls:'physical',acc:100,pp:35,mx:35,pr:0,al:null,ac:0,sc:[],sch:0,self:false}];
+  const z=p.sprites,a=(z.versions&&z.versions['generation-v']['black-white'].animated)||{};
+  return{name,types:p.types.map(t=>t.type.name),hp,max:hp,st:{atk:f(b.attack),def:f(b.defense),spa:f(b['special-attack']),spd:f(b['special-defense']),spe:f(b.speed)},
+    sg:zs(),stt:null,sl:0,mv:ms,fr:a.front_default||z.front_default,bk:a.back_default||z.back_default||z.front_default};
+}
+async function loadTypes(){await Promise.all(Object.keys(TC).map(async t=>{if(typeC[t])return;const r=(await api('type/'+t)).damage_relations,n=k=>r[k].map(x=>x.name);typeC[t]={d:n('double_damage_to'),h:n('half_damage_to'),n:n('no_damage_to')}}))}
+async function mkCpuTeam(){
+  const R=[[300,480],[400,560],[480,680]][diff],sp=[],used=[];
+  for(let t=0;sp.length<3&&t<30;t++){
+    const id=rnd(1025),p=await api('pokemon/'+id).catch(()=>null);if(!p||sp.some(x=>x.id===id))continue;
+    const bst=p.stats.reduce((a,x)=>a+x.base_stat,0),ty=p.types.map(x=>x.type.name);
+    if(bst<R[0]||bst>R[1]||(t<20&&ty.some(x=>used.includes(x))))continue;
+    sp.push({id});used.push(...ty);
+  }
+  while(sp.length<3)sp.push({id:rnd(649)});
+  return Promise.all(sp.map(mkMon));
+}
+
+/* ---------- Início da partida ---------- */
+async function ready(){
+  if(team.length<3||locked)return;
+  try{localStorage.setItem('pk-team',JSON.stringify(team))}catch(e){}
+  locked=1;renderTeam();
+  if(!cpu)send({t:'st',v:1});
+  if(me===1&&!cpu){send({t:'team',q:team});return tmsg('Time enviado. Aguardando o anfitrião…')}
+  tmsg('Carregando Pokémon…');
+  try{hostTeam=await Promise.all(team.map(mkMon));if(cpu){tmsg('A CPU está escolhendo…');guestTeam=await mkCpuTeam()}}
+  catch(e){tmsg(NETERR);locked=0;renderTeam();return}
+  tmsg(cpu?'':'Aguardando o oponente…');tryStart();
+}
+async function tryStart(){
+  if(!hostTeam||!guestTeam)return;
+  try{await loadTypes()}catch(e){tmsg(NETERR);locked=0;renderTeam();return}
+  acts=[null,null];resolving=false;aiBusy=0;rq=[0,0];chatHistory=[];renderChat();
+  E={p:[{team:clone(hostTeam),a:0},{team:clone(guestTeam),a:0}],phase:'choose',need:[0,0],win:-1,turn:0,diff:cpu?diff:-1};
+  show('battle');$('chatPanel').classList.toggle('hide',cpu);$('modePill').textContent=cpu?'🤖 Treino contra CPU':'🌐 Multiplayer online';updateConnection();
+  const F=[{msg:'A batalha começou!',hit:-1,ty:0,snd:0,s:clone(E)}];
+  if(cpu)F.push({msg:`${TR[diff].n}: “${TR[diff].hi}”`,hit:-1,ty:0,snd:0,s:clone(E)});
+  emit(F);
+}
+async function onData(m){
+  if(m.t==='team'){try{guestTeam=await Promise.all(m.q.map(mkMon));tryStart()}catch(e){send({t:'err'})}}
+  else if(m.t==='err'){tmsg(NETERR);locked=0;renderTeam()}
+  else if(m.t==='st'){$('oppSt').textContent=m.v?'Oponente pronto ✔':'Oponente escolhendo…'}
+  else if(m.t==='act'){if(E&&m.n===E.turn&&validAct(1,m.a)){acts[1]=m.a;check()}}
+  else if(m.t==='turn'){show('battle');enqueue(m.f)}
+  else if(m.t==='sync'){show('battle');enqueue([{msg:'Reconectado!',hit:-1,ty:0,snd:0,s:m.s}])}
+  else if(m.t==='rm'){rq[1]=1;if(!rq[0])note('Oponente quer revanche!');chkRm()}
+  else if(m.t==='rmq'){$('log').textContent='Oponente quer revanche!'}
+  else if(m.t==='emo'){bubble('eo',m.e)}
+  else if(m.t==='chat'){appendChat(m.text,m.from||'Oponente',false,m.time)}
+}
+function validAct(i,a){
+  if(!a||!E||E.phase==='over')return false;
+  const pl=E.p[i],m=pl.team[pl.a];
+  if(a.k==='sw')return(E.phase!=='forced'||E.need[i])&&pl.team[a.i]&&pl.team[a.i].hp>0&&a.i!==pl.a;
+  if(a.k==='mv'&&E.phase!=='forced')return a.i===-1?m.mv.every(x=>x.pp<=0):!!(m.mv[a.i]&&m.mv[a.i].pp>0);
+  return false;
+}
+
+/* ---------- Motor da batalha (só o anfitrião roda) ---------- */
+const eff=(t,ds)=>{const r=typeC[t];let e=1;if(!r)return 1;ds.forEach(d=>{if(r.d.includes(d))e*=2;if(r.h.includes(d))e*=.5;if(r.n.includes(d))e=0});return e};
+const stv=(m,k)=>m.st[k]*(m.sg[k]>=0?(2+m.sg[k])/2:2/(2-m.sg[k]));
+function msc(a,d){return Math.max(...a.mv.map(x=>x.p?eff(x.type,d.types):0))-Math.max(...d.types.map(t=>eff(t,a.types)))}
+function exd(x,a,d){return x.p?x.p*eff(x.type,d.types)*(a.types.includes(x.type)?1.5:1)*(x.acc||100)/100*(x.cls==='physical'?stv(a,'atk')/stv(d,'def'):stv(a,'spa')/stv(d,'spd')):0}
+function cpuAct(){
+  const pl=E.p[1],m=mon(E,1),o=mon(E,0),L=E.diff;
+  const alive=pl.team.map((x,i)=>x.hp>0&&i!==pl.a?i:-1).filter(i=>i>=0);
+  const best=()=>[...alive].sort((a,b)=>msc(pl.team[b],o)-msc(pl.team[a],o))[0];
+  if(E.phase==='forced')return{k:'sw',i:L===2?best():alive[Math.floor(Math.random()*alive.length)]};
+  if(L===2&&alive.length&&msc(m,o)<0){const b=best();if(msc(pl.team[b],o)>msc(m,o)+.5&&Math.random()<.6)return{k:'sw',i:b}}
+  const us=m.mv.map((x,i)=>i).filter(i=>m.mv[i].pp>0);
+  if(!us.length)return{k:'mv',i:-1};
+  if(L===0||(L===1&&Math.random()<.25))return{k:'mv',i:us[Math.floor(Math.random()*us.length)]};
+  const sc=i=>{const x=m.mv[i];if(x.p)return exd(x,m,o);if(L<2)return 0;
+    if(x.al&&!o.stt&&!IM[x.al].some(t=>o.types.includes(t)))return 40;
+    if(x.self&&x.sc.some(s=>s[1]>0&&m.sg[s[0]]<2)&&m.hp>m.max/2)return 30;
+    if(!x.self&&x.sc.some(s=>s[1]<0)&&o.sg[x.sc[0][0]]>-2)return 20;return 0};
+  us.sort((a,b)=>sc(b)-sc(a));
+  return{k:'mv',i:us[0]};
+}
+async function check(){
+  if(resolving||!E||E.phase==='over')return;
+  const need=i=>E.phase!=='forced'||E.need[i];
+  if(cpu&&need(1)&&!acts[1]){
+    if(aiBusy)return;aiBusy=1;const ep=E;await sleep(600+Math.random()*1000);aiBusy=0;
+    if(E!==ep||E.phase==='over')return;
+    if(!acts[1])acts[1]=cpuAct();
+  }
+  if([0,1].some(i=>need(i)&&!acts[i])||resolving)return;
+  resolving=true;resolve();resolving=false;
+  if(cpu)check();
+}
+function inflict(t,al,snap,force){
+  if(t.hp<=0)return;
+  if(t.stt){if(force)snap('Mas falhou!');return}
+  if(IM[al].some(x=>t.types.includes(x))){if(force)snap(`Não afeta ${t.name}…`);return}
+  t.stt=al;if(al==='slp')t.sl=2+Math.floor(Math.random()*3);snap(`${t.name} ${SM[al]}`);
+}
+function stage(t,k,ch,snap){
+  const o=t.sg[k],n=Math.max(-6,Math.min(6,o+ch));
+  if(n===o)return snap(`${SL[k]} de ${t.name} não pode ${ch>0?'subir':'cair'} mais!`);
+  t.sg[k]=n;snap(`${SL[k]} de ${t.name} ${ch>0?(ch>1?'subiu muito':'subiu'):(ch<-1?'caiu muito':'caiu')}!`);
+}
+function useMove(i,mi,snap){
+  const at=mon(E,i),df=mon(E,1-i),m=mi>=0?at.mv[mi]:STR;
+  if(at.stt==='slp'){if(--at.sl>0){snap(`${at.name} está dormindo…`);return}at.stt=null;snap(`${at.name} acordou!`)}
+  if(at.stt==='par'&&Math.random()<.25){snap(`${at.name} está paralisado e não consegue agir!`);return}
+  if(mi>=0)m.pp--;
+  snap(`${at.name} usou ${m.pn}!`,-1,m.type,'move');
+  if(m.acc&&Math.random()*100>=m.acc){snap('Mas errou!');return}
+  if(m.p){
+    const e=eff(m.type,df.types);
+    if(!e){snap(`Não afeta ${df.name}…`);return}
+    const ph=m.cls==='physical',A=stv(at,ph?'atk':'spa'),D=stv(df,ph?'def':'spd'),cr=Math.random()<1/16;
+    let d=Math.floor(Math.floor(22*m.p*A/D)/50)+2;
+    d=Math.max(1,Math.floor(d*(at.types.includes(m.type)?1.5:1)*e*(cr?1.5:1)*(.85+Math.random()*.15)*(ph&&at.stt==='brn'?.5:1)));
+    df.hp=Math.max(0,df.hp-d);
+    snap(`${df.name} perdeu ${d} HP.${cr?' Golpe crítico!':''}${e>1?' É super efetivo!':e<1?' Não é muito efetivo…':''}`,1-i,m.type,'hit');
+    if(!df.hp)snap(`${df.name} desmaiou!`,-1,0,'ko');
+    if(m.rec){const r=Math.max(1,Math.floor(at.max/4));at.hp=Math.max(0,at.hp-r);snap(`${at.name} sofreu o dano do recuo!`,i,0,'hit');if(!at.hp)snap(`${at.name} desmaiou!`,-1,0,'ko')}
+  }
+  const t=m.self?at:df;
+  if(t.hp<=0)return;
+  if(m.al&&Math.random()*100<(m.ac||100))inflict(t,m.al,snap,!m.p);
+  if(m.sc.length&&Math.random()*100<(m.sch||100))m.sc.forEach(s=>stage(t,s[0],s[1],snap));
+}
+function resolve(){
+  const A=acts,F=[];acts=[null,null];E.turn++;
+  const snap=(msg,hit=-1,ty=0,snd=0)=>F.push({msg,hit,ty,snd,s:clone(E)});
+  const doSw=i=>{mon(E,i).sg=zs();E.p[i].a=A[i].i;snap(`Jogador ${i+1} enviou ${mon(E,i).name}!`)};
+  if(E.phase==='forced'){
+    for(const i of[0,1])if(E.need[i])doSw(i);
+    E.need=[0,0];E.phase='choose';
+  }else{
+    for(const i of[0,1])if(A[i].k==='sw')doSw(i);
+    const ord=[0,1].filter(i=>A[i].k==='mv');
+    if(ord.length===2){
+      const pri=i=>A[i].i>=0?mon(E,i).mv[A[i].i].pr:0,spd=i=>stv(mon(E,i),'spe')*(mon(E,i).stt==='par'?.5:1);
+      const k=pri(1)-pri(0)||spd(1)-spd(0)||(Math.random()<.5?1:-1);if(k>0)ord.reverse();
+    }
+    for(const i of ord)if(mon(E,i).hp>0)useMove(i,A[i].i,snap);
+    for(const i of[0,1]){const m=mon(E,i);
+      if(m.hp>0&&(m.stt==='brn'||m.stt==='psn')){
+        m.hp=Math.max(0,m.hp-Math.max(1,Math.floor(m.max/(m.stt==='brn'?16:8))));
+        snap(`${m.name} sofreu com ${m.stt==='brn'?'a queimadura':'o veneno'}!`,i,0,'hit');
+        if(!m.hp)snap(`${m.name} desmaiou!`,-1,0,'ko');
+      }}
+    for(const i of[0,1])if(mon(E,i).hp<=0){if(E.p[i].team.some(x=>x.hp>0))E.need[i]=1;else E.win=1-i}
+    E.phase=E.win>=0?'over':(E.need[0]||E.need[1])?'forced':'choose';
+    if(E.win>=0)snap('Fim da batalha!',-1,0,'end');else if(E.phase==='forced')snap('Escolha o próximo Pokémon!');else snap('');
+  }
+  emit(F);
+}
+function emit(F){send({t:'turn',f:F});enqueue(F)}
+
+/* ---------- Interface da batalha ---------- */
+function enqueue(F){pending++;Q=Q.then(()=>play(F))}
+function flash(ty){const f=$('fx');f.style.background=TC[ty]||'#fff';f.classList.remove('go');void f.offsetWidth;f.classList.add('go')}
+async function play(F){
+  $('act').innerHTML='';$('emos').classList.toggle('hide',cpu);
+  for(const f of F){
+    S=f.s;render();if(f.msg)$('log').textContent=f.msg;
+    if(f.ty)flash(f.ty);
+    if(f.snd)(SFX[f.snd==='end'?(S.win===me?'win':'lose'):f.snd]||(()=>0))();
+    if(f.hit>=0){const im=$(f.hit===me?'meImg':'oppImg');im.classList.add('hit');setTimeout(()=>im.classList.remove('hit'),500);if(f.hit===me&&navigator.vibrate)navigator.vibrate(150)}
+    await sleep(f.msg?1100:250);
+  }
+  if(--pending===0)controls();
+}
+function box(k,m,pl,mine){
+  $(k+'N').textContent=m.name;
+  $(k+'T').textContent=m.types.map(t=>TP[t]).join(' / ');
+  const pc=m.hp/m.max*100,b=$(k+'B');
+  b.style.width=pc+'%';b.style.background=pc>50?'var(--green)':pc>20?'var(--gold)':'var(--red)';
+  $(k+'H').textContent=mine?`HP ${m.hp}/${m.max}`:`HP ${Math.round(pc)}%`;
+  $(k+'S').innerHTML=(m.stt?`<span class="bd" style="background:${STI[m.stt][1]}">${STI[m.stt][0]}</span>`:'')+Object.keys(m.sg).filter(x=>m.sg[x]).map(x=>`<span class="bd" style="background:${m.sg[x]>0?'#1d6b3a':'#9b1c1c'}">${SH[x]}${m.sg[x]>0?'▲':'▼'}${Math.abs(m.sg[x])}</span>`).join('');
+  $(k+'P').textContent=pl.team.map(x=>x.hp>0?'●':'○').join('');
+}
+function sprite(id,src,k,ko){
+  const im=$(id);
+  if(im.dataset.s!==src){im.dataset.s=src;im.style.height='';im.src=src;im.onload=()=>im.style.height=im.naturalHeight*k+'px'}
+  im.classList.toggle('ko',ko);
+}
+function render(){
+  const m=mon(S,me),o=mon(S,1-me);
+  box('m',m,S.p[me],1);box('o',o,S.p[1-me],0);
+  sprite('meImg',m.bk,2.6,m.hp<=0);sprite('oppImg',o.fr,2.2,o.hp<=0);
+  $('trn').textContent=S.diff>=0?`${TR[S.diff].n} (${['Fácil','Normal','Difícil'][S.diff]})`:'Batalha online • Turno '+S.turn;
+  updateConnection();
+}
+function controls(){
+  const a=$('act');
+  if(S.phase==='over'){
+    const w=S.win===me;
+    $('log').textContent=(w?'Você venceu a batalha!':'Você perdeu a batalha…')+(S.diff>=0?`\n${TR[S.diff].n}: “${w?TR[S.diff].l:TR[S.diff].w}”`:'');
+    a.innerHTML='<button class="red" style="grid-column:1/-1" onclick="rematch()">Revanche</button><button class="sw" style="grid-column:1/-1" onclick="location.reload()">Voltar ao início</button>';return;
+  }
+  const forced=S.phase==='forced',m=mon(S,me);
+  if(forced&&!S.need[me]){a.innerHTML='<p>Oponente está escolhendo…</p>';return}
+  let h='';
+  if(!forced){
+    m.mv.forEach((x,i)=>h+=`<button style="background:${TC[x.type]||'#555'}" ${x.pp<=0?'disabled':''} onclick="pick('mv',${i})">${x.pn}<br><small>${TP[x.type]} • ${x.p?'poder '+x.p:'status'}<br>PP ${x.pp}/${x.mx}${x.pr?' • prio '+(x.pr>0?'+':'')+x.pr:''}</small></button>`);
+    if(m.mv.every(x=>x.pp<=0))h+=`<button class="red" onclick="pick('mv',-1)">${STR.pn}<br><small>sem PP • recuo</small></button>`;
+  }
+  S.p[me].team.forEach((x,i)=>{if(i!==S.p[me].a&&x.hp>0)h+=`<button class="sw" onclick="pick('sw',${i})">Trocar: ${x.name}<br><small>HP ${x.hp}/${x.max}${x.stt?' • '+STI[x.stt][0]:''}</small></button>`});
+  a.innerHTML=h;
+}
+function pick(k,i){
+  $('act').innerHTML='<p>Aguardando o oponente…</p>';
+  const a={k,i};
+  if(me===0){if(validAct(0,a)){acts[0]=a;check()}}else send({t:'act',a,n:S.turn});
+}
+function rematch(){
+  $('act').innerHTML='<p>Aguardando o oponente aceitar a revanche…</p>';
+  if(cpu){rq=[1,1];return chkRm()}
+  if(me===0){rq[0]=1;send({t:'rmq'});chkRm()}else send({t:'rm'});
+}
+async function chkRm(){
+  if(!(rq[0]&&rq[1]))return;rq=[0,0];
+  if(cpu){try{guestTeam=await mkCpuTeam()}catch(e){$('log').textContent=NETERR;return}}
+  tryStart();
+}
+function renderChat(){
+  const box=$('chatMessages');if(!box)return;
+  if(!chatHistory.length){box.innerHTML='<p style="font:12px system-ui,sans-serif;color:#687386">As mensagens aparecerão aqui.</p>';return}
+  box.innerHTML=chatHistory.slice(-60).map(m=>`<div class="chatmsg ${m.mine?'mine':''}"><span class="who">${escapeChat(m.who)}<span class="when">${escapeChat(m.time||'')}</span></span><span>${escapeChat(m.text)}</span></div>`).join('');
+  box.scrollTop=box.scrollHeight;
+}
+function escapeChat(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+function appendChat(text,who,mine,time){
+  text=String(text||'').trim().slice(0,180);if(!text)return;
+  chatHistory.push({text,who,mine,time:time||new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})});
+  if(chatHistory.length>60)chatHistory.shift();renderChat();
+}
+function sendChat(event){
+  if(event)event.preventDefault();
+  const input=$('chatInput'),text=input.value.trim();if(!text)return;
+  if(cpu){appendChat(text,'Você',true);input.value='';return}
+  if(!conn||!conn.open){$('chatState').textContent='Sem conexão';return}
+  const time=new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
+  appendChat(text,me===0?'Anfitrião':'Convidado',true,time);send({t:'chat',text,from:me===0?'Anfitrião':'Convidado',time});input.value='';input.focus();
+}
+function bubble(id,e){const b=$(id);b.textContent=e;b.classList.remove('hide');clearTimeout(b._t);b._t=setTimeout(()=>b.classList.add('hide'),2200)}
+function emo(e){bubble('em',e);send({t:'emo',e})}
+$('emos').innerHTML=EMO.map(e=>`<button aria-label="Emote ${e}" onclick="emo('${e}')">${e}</button>`).join('');
+drawMute();
+</script>
+</body>
+</html>

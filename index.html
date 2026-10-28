@@ -430,7 +430,7 @@ async function tryStart(){
   try{await loadTypes()}catch(e){tmsg(NETERR);locked=0;renderTeam();return}
   acts=[null,null];resolving=false;aiBusy=0;rq=[0,0];chatHistory=[];renderChat();
   E={p:[{team:clone(hostTeam),a:0},{team:clone(guestTeam),a:0}],phase:'choose',need:[0,0],win:-1,turn:0,diff:cpu?diff:-1};
-  show('battle');$('chatPanel').classList.toggle('hide',cpu);$('modePill').textContent=cpu?'🤖 Treino contra CPU':'🌐 Multiplayer online';updateConnection();
+  show('battle');$('chatPanel').classList.toggle('hide',cpu);$('modePill').textContent=cpu?'🤖 Treino contra CPU':'🌐 Multiplayer online';updateConnection();renderChat();
   const F=[{msg:'A batalha começou!',hit:-1,ty:0,snd:0,s:clone(E)}];
   if(cpu)F.push({msg:`${TR[diff].n}: “${TR[diff].hi}”`,hit:-1,ty:0,snd:0,s:clone(E)});
   emit(F);
@@ -439,9 +439,22 @@ async function onData(m){
   if(m.t==='team'){try{guestTeam=await Promise.all(m.q.map(mkMon));tryStart()}catch(e){send({t:'err'})}}
   else if(m.t==='err'){tmsg(NETERR);locked=0;renderTeam()}
   else if(m.t==='st'){$('oppSt').textContent=m.v?'Oponente pronto ✔':'Oponente escolhendo…'}
-  else if(m.t==='act'){if(E&&m.n===E.turn&&validAct(1,m.a)){acts[1]=m.a;check()}}
-  else if(m.t==='turn'){show('battle');enqueue(m.f)}
-  else if(m.t==='sync'){show('battle');enqueue([{msg:'Reconectado!',hit:-1,ty:0,snd:0,s:m.s}])}
+  else if(m.t==='act'){
+    // O anfitrião valida a ação contra o estado atual. Se a ação ficou velha
+    // durante uma animação/troca, devolve o estado atual em vez de deixar a tela travada.
+    if(E&&m.n===E.turn&&validAct(1,m.a)){
+      if(!acts[1]){acts[1]=m.a;check()}
+    }else if(E){send({t:'sync',s:clone(E)})}
+  }
+  else if(m.t==='turn'){
+    show('battle');$('chatPanel').classList.toggle('hide',cpu);
+    updateConnection();enqueue(m.f)
+  }
+  else if(m.t==='sync'){
+    show('battle');$('chatPanel').classList.toggle('hide',cpu);
+    // Atualiza diretamente para não colocar um estado antigo na fila de animações.
+    if(m.s){S=clone(m.s);render();$('log').textContent='Batalha sincronizada. Escolha sua ação.';controls()}
+  }
   else if(m.t==='rm'){rq[1]=1;if(!rq[0])note('Oponente quer revanche!');chkRm()}
   else if(m.t==='rmq'){$('log').textContent='Oponente quer revanche!'}
   else if(m.t==='emo'){bubble('eo',m.e)}
@@ -604,9 +617,16 @@ function controls(){
   a.innerHTML=h;
 }
 function pick(k,i){
-  $('act').innerHTML='<p>Aguardando o oponente…</p>';
   const a={k,i};
-  if(me===0){if(validAct(0,a)){acts[0]=a;check()}}else send({t:'act',a,n:S.turn});
+  if(!S||S.phase==='over')return;
+  if(me===0){
+    if(!E||!validAct(0,a))return;
+    if(acts[0])return;
+    acts[0]=a;$('act').innerHTML='<p>Aguardando o oponente…</p>';check();return;
+  }
+  if(!conn||!conn.open){$('act').innerHTML='<p>Conexão perdida. Tentando reconectar…</p>';return}
+  $('act').innerHTML='<p>Enviando sua ação…</p>';
+  send({t:'act',a,n:S.turn});
 }
 function rematch(){
   $('act').innerHTML='<p>Aguardando o oponente aceitar a revanche…</p>';
